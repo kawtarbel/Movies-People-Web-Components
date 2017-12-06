@@ -1,0 +1,147 @@
+<!-- Load the Polymer.Element base class -->
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+
+<dom-module id="my-films">
+    <!-- Defines the element's style and local DOM -->
+    <template>
+        <style>
+             :host {
+                display: block;
+
+                padding: 16px;
+            }
+
+            paper-button.pink {
+                background-color: var(--paper-pink-500);
+                color: white;
+            }
+
+            paper-button.pink[active] {
+                background-color: var(--paper-gruy-500);
+            }
+
+            #titre{
+                font-weight: bold; 
+                margin-left: auto;
+                margin-right: auto;
+            }
+        </style>
+
+        <!-- Iron Ajax -->
+
+        <template is="dom-repeat" items="{{pageArray}}" as="nbrPage">
+            <iron-ajax auto url="https://swapi.co/api/films?page={{nbrPage}}" handle-as="json" on-response="onResponseFilms">
+            </iron-ajax>
+        </template>
+
+        <h1 id="titre">Movies List</h1>
+
+        <!-- Find Film -->
+        <template is="dom-if" if="[[!isTextEmpty]]">
+            <iron-ajax auto url="https://www.swapi.co/api/films/?search={{text}}" handle-as="json" on-response="findFilms">
+            </iron-ajax>
+        </template>
+
+
+        <paper-input always-float-label label="Search your favorite movie" on-input="textChange" value="{{text}}"></paper-input>
+
+
+        
+
+        <!--  All Film -->
+        <template is="dom-repeat" items="{{listFilms}}" as="film">
+            <paper-button toggles raised class="pink" on-click="details">See more</paper-button>
+            <strong>[[film.title]]</strong>
+            <br>
+            <hr>
+            <br>
+        </template>
+    </template>
+    <script>
+        // Your new element extends the Polymer.Element base class
+        class MyFilms extends Polymer.Element {
+            static get is() { return 'my-films'; }
+
+
+            constructor() {
+                super();
+                this.listFilms = [];
+                this.pageN = 9;
+                this.text = "";
+                this.isTextEmpty = true;
+                this.pageArray = [];
+
+                for (let i = 1; i <= this.pageN; i++)
+                    this.pageArray.push(i);
+
+                this.cpt = 0;
+            }
+
+            onResponseFilms(res) {
+                this.cpt++;
+
+                res.detail.response.results.forEach(function (element) {
+                    this.listFilms.push(element);
+                }, this);
+
+
+
+                if (this.pageN == 9) {
+                    console.log(this.listFilms);
+                    this.set('listFilms', this.listFilms.slice());
+                }
+
+
+            }
+
+            details(oEvent) {
+                let film = oEvent.model.get('film');
+                let temp = film.url.substr(film.url.lastIndexOf('films/') + 6);
+                let id = temp.substr(0, temp.length - 1);
+                console.log(id);
+                window.history.pushState({}, null, '/film/' + id);
+                window.dispatchEvent(new CustomEvent('location-changed'));
+            }
+
+            textChange() {
+                if (this.text == "")
+                    this.isTextEmpty = true;
+                else
+                    this.isTextEmpty = false;
+                console.log(this.text);
+            }
+
+            findFilms(res) {
+                if (this.text == "") {
+                    this.cpt++;
+
+                    res.detail.response.results.forEach(function (element) {
+                        this.listFilms.push(element);
+                    }, this);
+
+
+
+                    if (this.pageN == 9) {
+                        console.log(this.listFilms);
+                        this.set('listFilms', this.listFilms.slice());
+                    }
+
+                }
+
+
+                this.listFilms = [];
+                res.detail.response.results.forEach(function (element) {
+                    this.listFilms.push(element);
+                    console.log(element);
+                }, this);
+                this.set('listFilms', this.listFilms.slice());
+            }
+
+        }
+        //Now, register your new custom element so the browser can use it
+        customElements.define(MyFilms.is, MyFilms);
+    </script>
+</dom-module>
